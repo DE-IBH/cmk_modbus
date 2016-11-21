@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# cmk_modbus - Check_MK plugin to poll data from modbus-enabled devices
+#
+# Authors:
+#   Mathias Krüger <noreply@ibh.de>
+#
+# Copyright Holder:
+#   2016 (C) IBH IT-Service GmbH [http://www.ibh.de/]
+#
+# License:
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this package; if not, write to the Free Software
+#   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+#
+import json
+from argparse import Namespace
+
+def parse_data(data):
+    parsed_data = ''
+    for element in data:
+        parsed_data += (' '.join(map(str,element)))
+    return parsed_data
+
+def inventory_modbus_value(info):
+    data = parse_data(info)
+    current_device = json.loads(data, object_hook=lambda d: Namespace(**d))
+    for currRegister in current_device.registers:
+#        print currRegister.description
+        yield (currRegister.description, None)
+
+
+# the check function (dummy)
+def check_modbus_value(_unused, _no_params, info):
+    data = parse_data(info)
+    current_device = json.loads(data, object_hook=lambda d: Namespace(**d))
+
+    for currRegister in current_device.registers:
+        #output.append('%s: %s' % (currRegister.description, currRegister.value))
+        return 0, ('%s: %s' % (currRegister.description, currRegister.value))
+
+
+# declare the check to Check_MK
+check_info["modbus.value"] = {
+    'check_function':            check_modbus_value,
+    'inventory_function':        inventory_modbus_value,
+    'service_description':       'Modbus %s',
+    'has_perfdata':              True,
+}

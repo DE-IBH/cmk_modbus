@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# cmk_modbus - Check_MK plugin to poll data from modbus-enabled modbus_devices
+#
+# Authors:
+#   Mathias Krüger <noreply@ibh.de>
+#   Thomas Liske <liske@ibh.de>
+#
+# Copyright Holder:
+#   2016 (C) IBH IT-Service GmbH [http://www.ibh.de/]
+#
+# License:
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this package; if not, write to the Free Software
+#   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+#
+
+# Chagelog:
+#       initial v0.9.1
+#
+
+import argparse
+import json
+import os
+import sys
+from argparse import Namespace
+from struct import pack, unpack
+from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+
+
+def outputJSON(device):
+    return json.dumps(device, default=lambda o: o.__dict__, sort_keys=True, indent=2)
+
+
+def main():
+    args = getArgs()
+
+    try:
+        with open("{2}/modbus-devices/{0}.{1}".format(args.dev, 'json',os.path.dirname(os.path.realpath(__file__)))) as deviceDefinition:
+            data = deviceDefinition.read()
+            current_device = json.loads(data, object_hook=lambda d: Namespace(**d))
+
+        with ModbusClient(args.addr, args.port) as client:
+            for currRegister in current_device.registers:
+                ret = client.read_holding_registers(currRegister.address, 2)
+                if not ret.function_code < 0x80:
+                    print("Read failed")
+                    return
+
+                binary_data = pack("HH", ret.getRegister(1), ret.getRegister(0))
+                currRegister.value = unpack("f", binary_data)[0]
+
+        print('<<<modbus>>>\n{0}'.format(outputJSON(current_device)))
+
+    except OSError as err:
+        print("OS error: {0}".format(err))
+    except ValueError:
+        print("Opps... ValueError.")
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
+
+
+def getArgs():
+    parser = argparse.ArgumentParser(description='Simple CMK Modbus-Agent')
+    parser.add_argument('-a', '--addr', help='ip address of device', action="store", dest="addr", required=True)
+    parser.add_argument('-p', '--port', help='tcp-port (default: 502)', action="store", dest="port", default=502)
+    parser.add_argument('-d', '--dev', help='type of device (see: ./modbus_devices/<type>.json)', action="store", dest="dev", required=True)
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    main()
