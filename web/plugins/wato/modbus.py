@@ -25,17 +25,29 @@
 #   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 #
 
+group = "datasource_programs"
+
 register_rule(group,
     "special_agents:modbus",
-    Tuple(
-        title = _("Check Modbus devices"),
+     Dictionary(
+        title = _("Check state of Modbus TCP Devices"),
         help = _( "Configure address, tcp-port and type of device according to the supported devices. "
                   "New devices can be added, by dropping a json file into the special_agent/modbus_devices folder."),
         elements = [
-           Integer( title = _("Port"), default_value=502),
-           TextAscii( title = _("Device-Type")),
-        ]
+            ( "port",
+              Integer(
+                  title = _("Port"),
+                  default_value = 502,
+                  minvalue = 1,
+              )
+            ),
+            ( "dev",
+              TextAscii(
+                  title = _("Device Type"),
+              )
+            ),
+        ],
+        optional_keys = [ "port" ],
     ),
-    match = "first")
-
-
+    factory_default = FACTORY_DEFAULT_UNUSED, # No default, do not use setting if no rule matches
+    match = 'first')
