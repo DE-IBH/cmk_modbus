@@ -27,12 +27,15 @@
 
 # e.g. agent_modbus --addr 192.168.0.1 502 UMG_96_RM-EL-230_50
 
+modbus_templates_dir = os.path.expanduser('~') + "/etc/cmk_modbus/dev.d"
+
 def agent_modbus_arguments(params, hostname, ipaddress):
     port, dev = params
     address = quote_shell_string(ipaddress)
+    templates = quote_shell_string(modbus_templates_dir)
     device = quote_shell_string(dev)
 
-    args = "--addr {0} --port {1} --dev {2}".format(address, port, device)
+    args = "--addr {0} --port {1} --templates {2} --dev {3}".format(address, port, templates, device)
     return args
 
 special_agent_info['modbus'] = agent_modbus_arguments

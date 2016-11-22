@@ -47,20 +47,26 @@ def main():
     args = getArgs()
 
     try:
-        with open("{2}/modbus-devices/{0}.{1}".format(args.dev, 'json',os.path.dirname(os.path.realpath(__file__)))) as deviceDefinition:
+        with open("{2}/{0}.{1}".format(args.dev, 'json', args.templates)) as deviceDefinition:
             data = deviceDefinition.read()
             current_device = json.loads(data, object_hook=lambda d: Namespace(**d))
 
         with ModbusClient(args.addr, args.port) as client:
             for currRegister in current_device.registers:
                 ret = client.read_holding_registers(currRegister.address, 2)
+                if ret == None:
+                    sys.stderr.write("Read failed: "  + currRegister.description + "\n")
+                    currRegister.value = float('NaN')
+                    continue
                 if not ret.function_code < 0x80:
-                    print("Read failed")
-                    return
+                    sys.stderr.write("Read failed: "  + currRegister.description + "\n")
+                    currRegister.value = float('NaN')
+                    continue
 
                 binary_data = pack("HH", ret.getRegister(1), ret.getRegister(0))
                 currRegister.value = unpack("f", binary_data)[0]
 
+        print('<<<check_mk>>>\nVersion: cmk_modbus/v0.1')
         print('<<<modbus>>>\n{0}'.format(outputJSON(current_device)))
 
     except OSError as err:
@@ -76,7 +82,8 @@ def getArgs():
     parser = argparse.ArgumentParser(description='Simple CMK Modbus-Agent')
     parser.add_argument('-a', '--addr', help='ip address of device', action="store", dest="addr", required=True)
     parser.add_argument('-p', '--port', help='tcp-port (default: 502)', action="store", dest="port", default=502)
-    parser.add_argument('-d', '--dev', help='type of device (see: ./modbus_devices/<type>.json)', action="store", dest="dev", required=True)
+    parser.add_argument('-t', '--templates', help='templates directory (default: /etc/cmk_modbus/dev.d)', action="store", dest="templates", default="/etc/cmk_modbus/dev.d")
+    parser.add_argument('-d', '--dev', help='name of device template', action="store", dest="dev", required=True)
 
     return parser.parse_args()
 
