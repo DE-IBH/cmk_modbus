@@ -36,7 +36,8 @@ import os
 import sys
 from argparse import Namespace
 from struct import pack, unpack
-from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+from pymodbus.client.sync import ModbusTcpClient as ModbusClientTCP
+from pymodbus.client.sync import ModbusUdpClient as ModbusClientUDP
 
 
 def outputJSON(device):
@@ -51,7 +52,7 @@ def main():
             data = deviceDefinition.read()
             current_device = json.loads(data, object_hook=lambda d: Namespace(**d))
 
-        with ModbusClient(args.addr, args.port) as client:
+        def iterate_device():
             for currRegister in current_device.registers:
                 ret = client.read_holding_registers(currRegister.address, 2)
                 if ret == None:
@@ -65,6 +66,16 @@ def main():
 
                 binary_data = pack("HH", ret.getRegister(1), ret.getRegister(0))
                 currRegister.value = unpack("f", binary_data)[0]
+
+        if args.mode == "tcp":
+                with ModbusClientTCP(args.addr, args.port) as client:
+                    iterate_device()
+        elif args.mode == "udp":
+                with ModbusClientUDP(args.addr, args.port) as client:
+                    iterate_device()
+        else:
+                print("Select a valid and supported protocol. See --help")
+                sys.exit()
 
         print('<<<check_mk>>>\nVersion: cmk_modbus/v0.1')
         print('<<<modbus>>>\n{0}'.format(outputJSON(current_device)))
@@ -81,9 +92,10 @@ def main():
 def getArgs():
     parser = argparse.ArgumentParser(description='Simple CMK Modbus-Agent')
     parser.add_argument('-a', '--addr', help='ip address of device', action="store", dest="addr", required=True)
-    parser.add_argument('-p', '--port', help='tcp-port (default: 502)', action="store", dest="port", default=502)
+    parser.add_argument('-p', '--port', help='port (default: 502)', action="store", dest="port", default=502)
     parser.add_argument('-t', '--templates', help='templates directory (default: /etc/cmk_modbus/dev.d)', action="store", dest="templates", default="/etc/cmk_modbus/dev.d")
     parser.add_argument('-d', '--dev', help='name of device template', action="store", dest="dev", required=True)
+    parser.add_argument('-m', '--mode', help='udp or tcp (default: tcp)', action="store", dest="mode", default="tcp")
 
     return parser.parse_args()
 
