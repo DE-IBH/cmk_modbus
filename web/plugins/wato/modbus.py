@@ -34,6 +34,15 @@ register_rule(group,
         help = _( "Configure address, tcp-port and type of device according to the supported devices. "
                   "New devices can be added, by dropping a json file into the special_agent/modbus_devices folder."),
         elements = [
+            ( "proto",
+              DropdownChoice(
+                  title = _("Protocol"),
+                  choices = [
+                    ( "tcp", "Modbus TCP" ),
+                    ( "udp", "Modbus UDP" ),
+                 ],
+                 default_value = "tcp",
+            )),
             ( "port",
               Integer(
                   title = _("Port"),
@@ -47,7 +56,7 @@ register_rule(group,
               )
             ),
         ],
-        optional_keys = [ "port" ],
+        optional_keys = ["port", "proto"]
     ),
     factory_default = FACTORY_DEFAULT_UNUSED, # No default, do not use setting if no rule matches
     match = 'first')

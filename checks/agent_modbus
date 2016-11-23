@@ -30,11 +30,13 @@
 modbus_templates_dir = os.path.expanduser('~') + "/etc/cmk_modbus/dev.d"
 
 def agent_modbus_arguments(params, hostname, ipaddress):
+    proto = quote_shell_string( params.get('proto', 'tcp') )
+    port = params.get('port', 502)
     address = quote_shell_string(ipaddress)
     templates = quote_shell_string(modbus_templates_dir)
     device = quote_shell_string(params['dev'])
 
-    args = "--addr {0} --port {1} --templates {2} --dev {3}".format(address, params['port'], templates, device)
+    args = "--addr {0} --port {1} --templates {2} --dev {3} --proto {4}".format(address, port, templates, device, proto)
     return args
 
 special_agent_info['modbus'] = agent_modbus_arguments

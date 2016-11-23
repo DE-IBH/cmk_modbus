@@ -67,11 +67,11 @@ def main():
                 binary_data = pack("HH", ret.getRegister(1), ret.getRegister(0))
                 currRegister.value = unpack("f", binary_data)[0]
 
-        if args.mode == "tcp":
-                with ModbusClientTCP(args.addr, args.port) as client:
+        if args.proto == "tcp":
+                with ModbusClientTCP(args.addr, int(args.port)) as client:
                     iterate_device()
-        elif args.mode == "udp":
-                with ModbusClientUDP(args.addr, args.port) as client:
+        elif args.proto == "udp":
+                with ModbusClientUDP(args.addr, int(args.port)) as client:
                     iterate_device()
         else:
                 print("Select a valid and supported protocol. See --help")
@@ -95,7 +95,7 @@ def getArgs():
     parser.add_argument('-p', '--port', help='port (default: 502)', action="store", dest="port", default=502)
     parser.add_argument('-t', '--templates', help='templates directory (default: /etc/cmk_modbus/dev.d)', action="store", dest="templates", default="/etc/cmk_modbus/dev.d")
     parser.add_argument('-d', '--dev', help='name of device template', action="store", dest="dev", required=True)
-    parser.add_argument('-m', '--mode', help='udp or tcp (default: tcp)', action="store", dest="mode", default="tcp")
+    parser.add_argument('-P', '--proto', help='udp or tcp (default: tcp)', action="store", dest="proto", default="tcp")
 
     return parser.parse_args()
 
