@@ -77,7 +77,7 @@ def main():
                 print("Select a valid and supported protocol. See --help")
                 sys.exit()
 
-        print('<<<check_mk>>>\nVersion: cmk_modbus/v0.1')
+        print('<<<check_mk>>>\nVersion: cmk_modbus/v0.2/'.format(args.dev))
         print('<<<modbus>>>\n{0}'.format(outputJSON(current_device)))
 
     except OSError as err:
