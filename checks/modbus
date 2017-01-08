@@ -43,9 +43,9 @@ def inventory_modbus_value(info):
 # format value (int vs. float including unit)
 def cmk_modbus_format(reg):
     ftype = '%.2f'
-    if hasattr(reg, "type") && reg.type in ['short', 'word']:
+    if hasattr(reg, "type") and reg.type in ['short', 'word']:
         ftype = '%d'
-    if hasattr(reg, "unit") && reg.unit:
+    if hasattr(reg, "unit") and reg.unit:
         return ((ftype + ' %s') % (reg.value, reg.unit))
     return (ftype % (reg.value))
 
