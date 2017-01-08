@@ -40,6 +40,14 @@ def inventory_modbus_value(info):
 #        print currRegister.description
         yield (currRegister.description, None)
 
+# format value (int vs. float including unit)
+def cmk_modbus_format(reg):
+    ftype = '%.2f'
+    if hasattr(reg, "type") && reg.type in ['short', 'word']:
+        ftype = '%d'
+    if hasattr(reg, "unit") && reg.unit:
+        return ((ftype + ' %s') % (reg.value, reg.unit))
+    return (ftype % (reg.value))
 
 # the check function (dummy)
 def check_modbus_value(description, _no_params, info):
@@ -47,7 +55,11 @@ def check_modbus_value(description, _no_params, info):
     current_device = json.loads(data, object_hook=lambda d: Namespace(**d))
     for currRegister in current_device.registers:
         if description == currRegister.description:
-            return 0, ('%.2f %s' % (currRegister.value, currRegister.unit)), [
+            if hasattr(currRegister, "enum"):
+                return 0, currRegister.enum.get(currRegister.value) + ' (' + cmk_modbus_format(currRegister) + ')', [
+                    (currRegister.symbol, currRegister.value)
+                ]
+            return 0, cmk_modbus_format(currRegister), [
                 (currRegister.symbol, currRegister.value)
             ]
 

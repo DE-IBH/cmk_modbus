@@ -48,6 +48,7 @@ register_rule(group,
                   title = _("Port"),
                   default_value = 502,
                   minvalue = 1,
+                  maxvalue = 65535,
               )
             ),
             ( "dev",
@@ -55,8 +56,16 @@ register_rule(group,
                   title = _("Device Type"),
               )
             ),
+            ( "uid",
+              Integer(
+                  title = _("Unit ID"),
+                  default_value = 0,
+                  minvalue = 0,
+                  maxvalue = 255,
+              )
+            ),
         ],
-        optional_keys = ["port", "proto"]
+        optional_keys = ["port", "proto", "uid"]
     ),
     factory_default = FACTORY_DEFAULT_UNUSED, # No default, do not use setting if no rule matches
     match = 'first')

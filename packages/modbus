@@ -6,6 +6,6 @@
            'web': ['plugins/wato/modbus.py']},
  'name': 'modbus',
  'title': 'Modbus plugin utilizing device templates',
- 'version': '0.1',
+ 'version': '0.2',
  'version.min_required': '1.2.8',
- 'version.packaged': '1.2.8p13'}
+ 'version.packaged': '1.2.8p15'}

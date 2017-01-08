@@ -35,8 +35,9 @@ def agent_modbus_arguments(params, hostname, ipaddress):
     address = quote_shell_string(ipaddress)
     templates = quote_shell_string(modbus_templates_dir)
     device = quote_shell_string(params['dev'])
+    uid = params.get('uid', 0)
 
-    args = "--addr {0} --port {1} --templates {2} --dev {3} --proto {4}".format(address, port, templates, device, proto)
+    args = "--addr {0} --port {1} --templates {2} --dev {3} --proto {4} --uid {5}".format(address, port, templates, device, proto, uid)
     return args
 
 special_agent_info['modbus'] = agent_modbus_arguments

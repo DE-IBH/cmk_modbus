@@ -44,8 +44,66 @@ def outputJSON(device):
     return json.dumps(device, default=lambda o: o.__dict__, sort_keys=True, indent=2)
 
 
+def mb_readFloat(client, reg, uid):
+    ret = client.read_holding_registers(reg.address, 2, unit=uid)
+
+    if ret == None:
+        sys.stderr.write("Read failed: "  + reg.description + "\n")
+        return float('NaN')
+    if not ret.function_code < 0x80:
+        sys.stderr.write("Read failed: "  + reg.description + "\n")
+        return float('NaN')
+
+    binary_data = pack("HH", ret.getRegister(1), ret.getRegister(0))
+    return unpack("f", binary_data)[0]
+
+def mb_readShort(client, reg, uid):
+    ret = client.read_holding_registers(reg.address, 1, unit=uid)
+
+    if ret == None:
+        sys.stderr.write("Read failed: "  + reg.description + "\n")
+        return float('NaN')
+    if not ret.function_code < 0x80:
+        sys.stderr.write("Read failed: "  + reg.description + "\n")
+        return float('NaN')
+
+    val = ret.getRegister(0)
+
+    if hasattr(reg, 'mask'):
+	val &= reg.mask
+
+    if hasattr(reg, 'factor'):
+	val *= reg.factor
+
+    return val
+
+def mb_readWord(client, reg, uid):
+    ret = client.read_holding_registers(reg.address, 2, unit=uid)
+
+    if ret == None:
+        sys.stderr.write("Read failed: "  + reg.description + "\n")
+        return float('NaN')
+    if not ret.function_code < 0x80:
+        sys.stderr.write("Read failed: "  + reg.description + "\n")
+        return float('NaN')
+
+    val = ret.getRegister(0) + (ret.getRegister(1) << 8)
+
+    if hasattr(reg, 'mask'):
+	val &= reg.mask
+
+    if hasattr(reg, 'factor'):
+	val *= reg.factor
+
+    return val
+
 def main():
     args = getArgs()
+    types = {
+	"float": mb_readFloat,
+	"short": mb_readShort,
+	"word": mb_readWord,
+    }
 
     try:
         with open("{2}/{0}.{1}".format(args.dev, 'json', args.templates)) as deviceDefinition:
@@ -54,18 +112,10 @@ def main():
 
         def iterate_device():
             for currRegister in current_device.registers:
-                ret = client.read_holding_registers(currRegister.address, 2)
-                if ret == None:
-                    sys.stderr.write("Read failed: "  + currRegister.description + "\n")
-                    currRegister.value = float('NaN')
-                    continue
-                if not ret.function_code < 0x80:
-                    sys.stderr.write("Read failed: "  + currRegister.description + "\n")
-                    currRegister.value = float('NaN')
-                    continue
-
-                binary_data = pack("HH", ret.getRegister(1), ret.getRegister(0))
-                currRegister.value = unpack("f", binary_data)[0]
+		func = mb_readFloat
+		if hasattr(currRegister, 'type'):
+		    func = types.get(currRegister.type, mb_readFloat)
+		currRegister.value = func(client, currRegister, int(args.uid))
 
         if args.proto == "tcp":
                 with ModbusClientTCP(args.addr, int(args.port)) as client:
@@ -83,7 +133,7 @@ def main():
     except OSError as err:
         print("OS error: {0}".format(err))
     except ValueError:
-        print("Opps... ValueError.")
+        print("Opps... ValueError")
     except:
         print("Unexpected error:", sys.exc_info()[0])
         raise
@@ -96,6 +146,7 @@ def getArgs():
     parser.add_argument('-t', '--templates', help='templates directory (default: /etc/cmk_modbus/dev.d)', action="store", dest="templates", default="/etc/cmk_modbus/dev.d")
     parser.add_argument('-d', '--dev', help='name of device template', action="store", dest="dev", required=True)
     parser.add_argument('-P', '--proto', help='udp or tcp (default: tcp)', action="store", dest="proto", default="tcp")
+    parser.add_argument('-u', '--uid', help='unit identifier (default: 0)', action="store", dest="uid", default="0")
 
     return parser.parse_args()
 
