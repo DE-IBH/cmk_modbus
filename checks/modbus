@@ -43,7 +43,8 @@ def inventory_modbus_value(info):
 def cmk_modbus_format(reg):
     ftype = '%.2f'
     if hasattr(reg, "type") and reg.type in ['short', 'word']:
-        ftype = '%d'
+        if not hasattr(reg, "factor"):
+            ftype = '%d'
     if hasattr(reg, "unit") and reg.unit:
         return ((ftype + ' %s') % (reg.value, reg.unit))
     return (ftype % (reg.value))
@@ -56,7 +57,7 @@ def check_modbus_value(description, _no_params, info):
         if description == currRegister.description:
             if hasattr(currRegister, "enum"):
                 enum = vars(currRegister.enum)
-                return 0, '%s (%s)' % (enum.get(currRegister.value, '???'), cmk_modbus_format(currRegister)), [
+                return 0, '%s (%s)' % (enum.get(str(currRegister.value), '???'), cmk_modbus_format(currRegister)), [
                     (currRegister.symbol, currRegister.value)
                 ]
             return 0, cmk_modbus_format(currRegister), [
